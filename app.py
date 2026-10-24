@@ -45,16 +45,18 @@ def call_gemini(key, body):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             return data["candidates"][0]["content"]["parts"][0]["text"]
         except urllib.error.HTTPError as e:
-            if e.code in (429, 500, 503) and attempt < 2:
-                time.sleep(3)
+            if e.code in (500, 503) and attempt < 2:
+                time.sleep(2)
                 continue
             raise RuntimeError(e.read().decode("utf-8", errors="ignore"))
-
-
+        except (TimeoutError, urllib.error.URLError):
+            if attempt < 2:
+                continue
+            raise RuntimeError("Gemini waa mashquul yahay hadda.")
 def build_parts(m):
     parts = []
     if m.get("image"):
