@@ -56,7 +56,7 @@ def call_gemini(key, body):
         except (TimeoutError, urllib.error.URLError):
             if attempt < 2:
                 continue
-            raise RuntimeError("fadlan isku day mar kale.")
+            raise RuntimeError("Gemini waa mashquul yahay hadda.")
 def build_parts(m):
     parts = []
     if m.get("image"):
