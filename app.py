@@ -36,27 +36,31 @@ def load_key():
     return None
 
 
+MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]
+
+
 def call_gemini(key, body):
-    for attempt in range(3):
+    last_error = "Gemini waa mashquul yahay hadda."
+    for model in MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         req = urllib.request.Request(
-            URL,
+            url,
             data=json.dumps(body).encode("utf-8"),
             headers={"Content-Type": "application/json", "x-goog-api-key": key},
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=25) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             return data["candidates"][0]["content"]["parts"][0]["text"]
         except urllib.error.HTTPError as e:
-            if e.code in (500, 503) and attempt < 2:
-                time.sleep(2)
+            last_error = e.read().decode("utf-8", errors="ignore")
+            if e.code in (404, 429, 500, 503):
                 continue
-            raise RuntimeError(e.read().decode("utf-8", errors="ignore"))
+            raise RuntimeError(last_error)
         except (TimeoutError, urllib.error.URLError):
-            if attempt < 2:
-                continue
-            raise RuntimeError("Gemini waa mashquul yahay hadda.")
+            continue
+    raise RuntimeError(last_error)
 def build_parts(m):
     parts = []
     if m.get("image"):
