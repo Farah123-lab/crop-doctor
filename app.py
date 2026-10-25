@@ -143,18 +143,46 @@ if "chat" not in st.session_state:
 for m in st.session_state.chat:
     show(m)
 
-prompt = st.chat_input(
-    "Weydii su'aal... (riix + si aad sawir ugu darto)",
-    accept_file=True,
-    file_type=["jpg", "jpeg", "png"],
-)
+if "pic_n" not in st.session_state:
+    st.session_state.pic_n = 0
+n = st.session_state.pic_n
 
-if prompt:
-    msg = {"role": "user", "text": prompt.text or "", "image": None, "mime": None}
-    if prompt.files:
-        f = prompt.files[0]
-        msg["image"] = f.getvalue()
-        msg["mime"] = f.type or "image/jpeg"
+# ➕ button next to the chat box: Camera or Drag & drop
+bottom = st._bottom if hasattr(st, "_bottom") else st.container()
+with bottom:
+    with st.popover("➕"):
+        way = st.radio(
+            "Dooro",
+            ["📷 Kamarad", "🖼️ Soo geli (drag & drop)"],
+            key=f"way_{n}",
+        )
+        if way.startswith("📷"):
+            photo = st.camera_input("Sawir qaad", key=f"cam_{n}")
+        else:
+            photo = st.file_uploader(
+                "Soo jiid sawirka halkan",
+                type=["jpg", "jpeg", "png"],
+                key=f"upl_{n}",
+            )
+        if photo is not None and st.button("✅ Dir sawirka", type="primary", key=f"send_{n}"):
+            st.session_state.pending = (photo.getvalue(), photo.type)
+
+prompt = st.chat_input("Weydii su'aal...")
+
+msg = None
+pending = st.session_state.pop("pending", None)
+if pending:
+    st.session_state.pic_n += 1  # reset camera and uploader
+    msg = {
+        "role": "user",
+        "text": "Fadlan eeg sawirkan.",
+        "image": pending[0],
+        "mime": pending[1] or "image/jpeg",
+    }
+elif prompt:
+    msg = {"role": "user", "text": prompt, "image": None, "mime": None}
+
+if msg:
     st.session_state.chat.append(msg)
     show(msg)
 
