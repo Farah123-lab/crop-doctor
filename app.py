@@ -9,12 +9,13 @@ import streamlit as st
 from PIL import Image
 
 MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]
+MAX_PHOTOS = 4
 
 # Somali name -> English name (the AI understands the English name better)
 CROPS = {
     "Ma garanayo": "unknown",
-    "Galeey": "maize",
-    "Haruur": "sorghum",
+    "Galay": "maize",
+    "Hadhuudh": "sorghum",
     "Sisin": "sesame",
     "Yaanyo": "tomato",
     "Muuse": "banana",
@@ -33,11 +34,14 @@ def build_system(lang, crop):
         "Use very simple words and short answers. "
         "If there is a plant photo: name the crop, say if it is healthy, name the disease "
         "or problem, give the cause, then cheap and safe treatment steps, then prevention tips. "
+        "If there are several photos, they may show the same plant from different sides "
+        "or different plants. Look at all of them. If they are different plants, "
+        "answer for each one with a short title (Photo 1, Photo 2...). "
         "Use these short headings with emojis, written in the answer language: "
         "🌿 Crop, 🦠 Problem, ❓ Cause, 💊 Treatment, 🛡️ Prevention. "
         "If you are not sure, say so and ask a short question. "
         "If the problem looks serious, tell the farmer to also ask a local agriculture expert. "
-        "If the photo is not a plant, say so politely."
+        "If a photo is not a plant, say so politely."
     )
     if crop != "unknown":
         text += f" The farmer says the crop is {crop}."
@@ -82,7 +86,7 @@ def call_gemini(key, body):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=25) as resp:
+            with urllib.request.urlopen(req, timeout=40) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             return data["candidates"][0]["content"]["parts"][0]["text"]
         except urllib.error.HTTPError as e:
@@ -95,17 +99,18 @@ def call_gemini(key, body):
     raise RuntimeError(last_error)
 
 
-def build_parts(m, with_image=True):
+def build_parts(m, with_images=True):
     parts = []
-    if with_image and m.get("image"):
-        parts.append(
-            {
-                "inline_data": {
-                    "mime_type": m["mime"],
-                    "data": base64.b64encode(m["image"]).decode(),
+    if with_images:
+        for data, mime in m.get("images", []):
+            parts.append(
+                {
+                    "inline_data": {
+                        "mime_type": mime,
+                        "data": base64.b64encode(data).decode(),
+                    }
                 }
-            }
-        )
+            )
     if m.get("text"):
         parts.append({"text": m["text"]})
     return parts
@@ -119,8 +124,8 @@ def ask(key, history, lang, crop):
     last_index = len(recent) - 1
     for i, m in enumerate(recent):
         role = "user" if m["role"] == "user" else "model"
-        # Send only the newest photo (faster and cheaper)
-        contents.append({"role": role, "parts": build_parts(m, with_image=(i == last_index))})
+        # Send photos only for the newest message (faster and cheaper)
+        contents.append({"role": role, "parts": build_parts(m, with_images=(i == last_index))})
     body = {
         "systemInstruction": {"parts": [{"text": build_system(lang, crop)}]},
         "contents": contents,
@@ -130,12 +135,14 @@ def ask(key, history, lang, crop):
 
 def show(m):
     with st.chat_message(m["role"]):
-        if m.get("image"):
-            b64 = base64.b64encode(m["image"]).decode()
-            st.markdown(
-                f'<img src="data:{m["mime"]};base64,{b64}" width="250">',
-                unsafe_allow_html=True,
-            )
+        images = m.get("images", [])
+        if images:
+            if len(images) == 1:
+                st.image(images[0][0], width=260)
+            else:
+                cols = st.columns(len(images))
+                for col, (data, _) in zip(cols, images):
+                    col.image(data, use_container_width=True)
         if m.get("text"):
             st.write(m["text"])
 
@@ -165,13 +172,21 @@ def handle(msg, key, lang, crop):
     return answer
 
 
-st.set_page_config(page_title="Dhakhtarka Dalagga", page_icon="🌱")
+# ---------------------------------------------------------------- page setup
+st.set_page_config(
+    page_title="Dhakhtarka Dalagga",
+    page_icon="🌱",
+    initial_sidebar_state="collapsed",
+)
 st.markdown(
     """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     [data-testid="stToolbar"] {display: none;}
+    .block-container {padding-top: 2rem; max-width: 800px;}
+    h1 {text-align: center; margin-bottom: 0;}
+    .tagline {text-align: center; opacity: 0.75; margin-bottom: 1rem;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -179,67 +194,90 @@ st.markdown(
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
-if "cam_n" not in st.session_state:
-    st.session_state.cam_n = 0
 
 st.title("🌱 Dhakhtarka Dalagga")
-st.caption("Ku soo dhawaaw dhakhtarka dalagga! Sawir qaad ama weydii su'aal, oo hel talo degdeg ah.")
+st.markdown(
+    '<p class="tagline">Sawir qaad dalagaaga, hel talo degdeg ah oo Soomaali ah.</p>',
+    unsafe_allow_html=True,
+)
 
-with st.sidebar:
-    st.header("🌿 Ku saabsan")
+# ---------------------------------------------------- about + settings (main page)
+with st.expander("🌿 Ku saabsan"):
     st.write(
         "Dhakhtarka Dalagga waxa uu caawiyaa beeralayda Soomaaliyeed. "
         "Soo geli sawirka dalag jirran, oo waxaad heli doontaa cudurka, "
         "sababta, daawaynta iyo ka-hortagga."
     )
-
-    st.subheader("⚙️ Dejinta")
-    crop_label = st.selectbox("Dalagga (ikhtiyaari)", list(CROPS.keys()))
-    lang_label = st.radio("Luuqadda jawaabta", list(LANGS.keys()))
-    crop = CROPS[crop_label]
-    lang = LANGS[lang_label]
-
-    last_answer = next(
-        (m["text"] for m in reversed(st.session_state.chat) if m["role"] == "assistant"),
-        None,
-    )
-    if last_answer:
-        st.download_button(
-            "⬇️ Kaydi talada",
-            data=last_answer,
-            file_name="talada-dalagga.txt",
-        )
-
-    if st.button("Bilow wada hadal cusub"):
-        st.session_state.chat = []
-        st.rerun()
-
     st.info(
         "⚠️ Tani waa caawimo degdeg ah. Haddii cudurku weyn yahay, "
         "la tasho khabiir beeraha."
     )
+
+with st.expander("⚙️ Dejinta"):
+    c1, c2 = st.columns(2)
+    crop_label = c1.selectbox("Dalagga (ikhtiyaari)", list(CROPS.keys()))
+    lang_label = c2.radio("Luuqadda jawaabta", list(LANGS.keys()), horizontal=True)
+crop = CROPS[crop_label]
+lang = LANGS[lang_label]
 
 key = load_key()
 if not key:
     st.error("Furaha API lama helin. Geli furaha faylka key.txt (ama Secrets haddii ay online tahay).")
     st.stop()
 
+# ---------------------------------------------------------------- welcome / actions
+if not st.session_state.chat:
+    s1, s2, s3 = st.columns(3)
+    with s1.container(border=True):
+        st.markdown("**1️⃣ Sawir qaad**")
+        st.caption(f"Riix ➕ hoose. Dalagga jirran sawir ka qaad (ilaa {MAX_PHOTOS} sawir).")
+    with s2.container(border=True):
+        st.markdown("**2️⃣ Dir**")
+        st.caption("Riix fallaadhka si aad u dirto.")
+    with s3.container(border=True):
+        st.markdown("**3️⃣ Hel talo**")
+        st.caption("Cudurka, daawaynta iyo ka-hortagga.")
+else:
+    last_answer = next(
+        (m["text"] for m in reversed(st.session_state.chat) if m["role"] == "assistant"),
+        None,
+    )
+    b1, b2 = st.columns(2)
+    if b1.button("🔄 Wada hadal cusub", use_container_width=True):
+        st.session_state.chat = []
+        st.rerun()
+    if last_answer:
+        b2.download_button(
+            "⬇️ Kaydi talada",
+            data=last_answer,
+            file_name="talada-dalagga.txt",
+            use_container_width=True,
+        )
+
 for m in st.session_state.chat:
     show(m)
 
-
-# ---------- Chat box (text + upload) ----------
+# ---------------------------------------------------------------- chat box
 prompt = st.chat_input(
-    "Weydii su'aal... (riix + si aad sawir ugu darto)",
-    accept_file=True,
+    "Weydii su'aal... (riix ➕ si aad sawir ugu darto)",
+    accept_file="multiple",
     file_type=["jpg", "jpeg", "png"],
 )
 
 if prompt:
-    msg = {"role": "user", "text": prompt.text or "", "image": None, "mime": None}
-    if prompt.files:
-        f = prompt.files[0]
-        msg["image"], msg["mime"] = shrink(f.getvalue(), f.type)
-        if not msg["text"]:
-            msg["text"] = "Fadlan eeg sawirkan." if lang == "Somali" else "Please look at this photo."
-    handle(msg, key, lang, crop)
+    files = list(prompt.files or [])
+    if len(files) > MAX_PHOTOS:
+        st.warning(f"Ilaa {MAX_PHOTOS} sawir ayaa la qaadanayaa. Kuwa kale waa laga tagay.")
+        files = files[:MAX_PHOTOS]
+
+    images = [shrink(f.getvalue(), f.type) for f in files]
+    text = prompt.text or ""
+    if images and not text:
+        if lang == "Somali":
+            text = "Fadlan eeg sawirka." if len(images) == 1 else "Fadlan eeg sawirada."
+        else:
+            text = "Please look at this photo." if len(images) == 1 else "Please look at these photos."
+
+    handle({"role": "user", "text": text, "images": images}, key, lang, crop)
+
+st.caption("🌱 Dhakhtarka Dalagga · AI-ga waxa uu qaldami karaa. Khabiir la tasho marka cudurku weyn yahay.")
