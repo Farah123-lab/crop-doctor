@@ -116,13 +116,20 @@ st.markdown(
     [data-testid="stChatInput"] textarea {padding-left: 2.2rem !important;}
     [data-testid="stBottom"] [data-testid="stElementContainer"]:has([data-testid="stPopover"]) {
         position: relative;
+        width: 100%;
         height: 0;
-        z-index: 1000;
+        overflow: visible;
+        z-index: 999999;
+    }
+    [data-testid="stBottom"] [data-testid="stPopover"] {
+        position: static;
     }
     [data-testid="stBottom"] [data-testid="stPopover"] button {
         position: absolute;
         left: max(1.5rem, calc(50% - 21.4rem));
         top: 2.6rem;
+        z-index: 999999;
+        color: #ffffff;
         width: 2.4rem;
         height: 2.4rem;
         min-height: 0;
