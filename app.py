@@ -111,6 +111,31 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     [data-testid="stToolbar"] {display: none;}
+
+    /* put the + button inside the chat box, on the left */
+    [data-testid="stChatInput"] textarea {padding-left: 3.4rem !important;}
+    [data-testid="stBottom"] [data-testid="stElementContainer"]:has([data-testid="stPopover"]) {
+        position: relative;
+        height: 0;
+        z-index: 1000;
+    }
+    [data-testid="stBottom"] [data-testid="stPopover"] button {
+        position: absolute;
+        left: 0.6rem;
+        top: 1.5rem;
+        width: 2.4rem;
+        height: 2.4rem;
+        min-height: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        font-size: 1.7rem;
+        line-height: 1;
+        border-radius: 50%;
+    }
+    [data-testid="stBottom"] [data-testid="stPopover"] button [data-testid="stIconMaterial"] {
+        display: none;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -150,7 +175,7 @@ n = st.session_state.pic_n
 # ➕ button next to the chat box: Camera or Drag & drop
 bottom = st._bottom if hasattr(st, "_bottom") else st.container()
 with bottom:
-    with st.popover("➕"):
+    with st.popover("＋"):
         way = st.radio(
             "Dooro",
             ["📷 Kamarad", "🖼️ Soo geli (drag & drop)"],
