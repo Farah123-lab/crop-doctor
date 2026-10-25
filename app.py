@@ -227,30 +227,36 @@ if not key:
 for m in st.session_state.chat:
     show(m)
 
-# ---------- Camera ----------
-use_cam = st.toggle("📷 Isticmaal kamarada")
-if use_cam:
-    photo = st.camera_input(
-        "Sawir qaad dalagga jirran",
-        key=f"cam_{st.session_state.cam_n}",
+# ---------- + button: camera or upload ----------
+n = st.session_state.cam_n
+
+with st.popover("➕ Sawir"):
+    way = st.radio(
+        "Sidee sawirka u dirayaa?",
+        ["📷 Kamarad", "🖼️ Soo geli (Upload)"],
+        key=f"way_{n}",
     )
-    if photo is not None and st.button("✅ Dir sawirka", type="primary"):
-        img, mime = shrink(photo.getvalue(), photo.type)
-        cam_text = "Fadlan eeg sawirkan." if lang == "Somali" else "Please look at this photo."
-        handle({"role": "user", "text": cam_text, "image": img, "mime": mime}, key, lang, crop)
-        st.session_state.cam_n += 1  # reset the camera
-        st.rerun()
+    if way.startswith("📷"):
+        photo = st.camera_input("Sawir qaad dalagga jirran", key=f"cam_{n}")
+    else:
+        photo = st.file_uploader(
+            "Dooro sawirka",
+            type=["jpg", "jpeg", "png"],
+            key=f"upl_{n}",
+        )
+    if photo is not None and st.button("✅ Dir sawirka", type="primary", key=f"send_{n}"):
+        st.session_state.pending = (photo.getvalue(), photo.type)
+
+pending = st.session_state.pop("pending", None)
+if pending:
+    img, mime = shrink(pending[0], pending[1])
+    pic_text = "Fadlan eeg sawirkan." if lang == "Somali" else "Please look at this photo."
+    handle({"role": "user", "text": pic_text, "image": img, "mime": mime}, key, lang, crop)
+    st.session_state.cam_n += 1  # reset camera and uploader
+    st.rerun()
 
 # ---------- Chat box (text + upload) ----------
-prompt = st.chat_input(
-    "Weydii su'aal... (riix + si aad sawir ugu darto)",
-    accept_file=True,
-    file_type=["jpg", "jpeg", "png"],
-)
+prompt = st.chat_input("Weydii su'aal...")
 
 if prompt:
-    msg = {"role": "user", "text": prompt.text or "", "image": None, "mime": None}
-    if prompt.files:
-        f = prompt.files[0]
-        msg["image"], msg["mime"] = shrink(f.getvalue(), f.type)
-    handle(msg, key, lang, crop)
+    handle({"role": "user", "text": prompt, "image": None, "mime": None}, key, lang, crop)
