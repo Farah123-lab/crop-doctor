@@ -111,38 +111,6 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     [data-testid="stToolbar"] {display: none;}
-
-    /* put the + button inside the chat box, on the left */
-    [data-testid="stChatInput"] textarea {padding-left: 2.2rem !important;}
-    [data-testid="stBottom"] [data-testid="stElementContainer"]:has([data-testid="stPopover"]) {
-        position: relative;
-        width: 100%;
-        height: 0;
-        overflow: visible;
-        z-index: 999999;
-    }
-    [data-testid="stBottom"] [data-testid="stPopover"] {
-        position: static;
-    }
-    [data-testid="stBottom"] [data-testid="stPopover"] button {
-        position: absolute;
-        left: max(1.5rem, calc(50% - 21.4rem));
-        top: 2.6rem;
-        z-index: 999999;
-        color: #ffffff;
-        width: 2.4rem;
-        height: 2.4rem;
-        min-height: 0;
-        padding: 0;
-        border: none;
-        background: transparent;
-        font-size: 1.7rem;
-        line-height: 1;
-        border-radius: 50%;
-    }
-    [data-testid="stBottom"] [data-testid="stPopover"] button [data-testid="stIconMaterial"] {
-        display: none;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -175,46 +143,18 @@ if "chat" not in st.session_state:
 for m in st.session_state.chat:
     show(m)
 
-if "pic_n" not in st.session_state:
-    st.session_state.pic_n = 0
-n = st.session_state.pic_n
+prompt = st.chat_input(
+    "Weydii su'aal... (riix + si aad sawir ugu darto)",
+    accept_file=True,
+    file_type=["jpg", "jpeg", "png"],
+)
 
-# ➕ button next to the chat box: Camera or Drag & drop
-bottom = st._bottom if hasattr(st, "_bottom") else st.container()
-with bottom:
-    with st.popover("＋"):
-        way = st.radio(
-            "Dooro",
-            ["📷 Kamarad", "🖼️ Soo geli (drag & drop)"],
-            key=f"way_{n}",
-        )
-        if way.startswith("📷"):
-            photo = st.camera_input("Sawir qaad", key=f"cam_{n}")
-        else:
-            photo = st.file_uploader(
-                "Soo geli sawirka",
-                type=["jpg", "jpeg", "png"],
-                key=f"upl_{n}",
-            )
-        if photo is not None and st.button("✅ Dir sawirka", type="primary", key=f"send_{n}"):
-            st.session_state.pending = (photo.getvalue(), photo.type)
-
-prompt = st.chat_input("Weydii su'aal...")
-
-msg = None
-pending = st.session_state.pop("pending", None)
-if pending:
-    st.session_state.pic_n += 1  # reset camera and uploader
-    msg = {
-        "role": "user",
-        "text": "Fadlan eeg sawirkan.",
-        "image": pending[0],
-        "mime": pending[1] or "image/jpeg",
-    }
-elif prompt:
-    msg = {"role": "user", "text": prompt, "image": None, "mime": None}
-
-if msg:
+if prompt:
+    msg = {"role": "user", "text": prompt.text or "", "image": None, "mime": None}
+    if prompt.files:
+        f = prompt.files[0]
+        msg["image"] = f.getvalue()
+        msg["mime"] = f.type or "image/jpeg"
     st.session_state.chat.append(msg)
     show(msg)
 
