@@ -125,7 +125,7 @@ with st.sidebar:
     st.header("🌿 Ku saabsan")
     st.write(
         "Dhakhtarka Dalagga waxa uu caawiyaa beeralayda Soomaaliyeed. "
-        "Soo geli sawirka caleen jirran, oo waxaad heli doontaa cudurka, "
+        "Soo geli sawirka dalag jirran, oo waxaad heli doontaa cudurka, "
         "sababta, daawaynta iyo ka-hortagga."
     )
     if st.button("Bilow wada hadal cusub"):
