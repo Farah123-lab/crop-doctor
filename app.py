@@ -13,8 +13,8 @@ MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]
 # Somali name -> English name (the AI understands the English name better)
 CROPS = {
     "Ma garanayo": "unknown",
-    "Galay": "maize",
-    "Hadhuudh": "sorghum",
+    "Galeey": "maize",
+    "Haruur": "sorghum",
     "Sisin": "sesame",
     "Yaanyo": "tomato",
     "Muuse": "banana",
