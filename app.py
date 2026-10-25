@@ -113,7 +113,7 @@ st.markdown(
     [data-testid="stToolbar"] {display: none;}
 
     /* put the + button inside the chat box, on the left */
-    [data-testid="stChatInput"] textarea {padding-left: 3.4rem !important;}
+    [data-testid="stChatInput"] textarea {padding-left: 2.2rem !important;}
     [data-testid="stBottom"] [data-testid="stElementContainer"]:has([data-testid="stPopover"]) {
         position: relative;
         height: 0;
@@ -121,8 +121,8 @@ st.markdown(
     }
     [data-testid="stBottom"] [data-testid="stPopover"] button {
         position: absolute;
-        left: 0.6rem;
-        top: 1.5rem;
+        left: max(1.5rem, calc(50% - 21.4rem));
+        top: 2.6rem;
         width: 2.4rem;
         height: 2.4rem;
         min-height: 0;
