@@ -192,7 +192,7 @@ with bottom:
             photo = st.camera_input("Sawir qaad", key=f"cam_{n}")
         else:
             photo = st.file_uploader(
-                "Soo jiid sawirka halkan",
+                "Soo geli sawirka",
                 type=["jpg", "jpeg", "png"],
                 key=f"upl_{n}",
             )
