@@ -1,0 +1,49 @@
+# 🌱 Dhakhtarka Dalagga (Plant Doctor)
+
+An AI helper for small farmers in Somalia.
+The farmer sends a plant photo or a question. The app answers in simple Somali.
+
+## What the farmer gets
+1. The name of the crop
+2. Is it healthy or sick?
+3. The disease or problem
+4. The cause
+5. Cheap and safe treatment steps
+6. Tips to prevent it next time
+
+## How it works
+1. The farmer uploads a photo (or types a question).
+2. The app sends it to Gemini AI with clear instructions.
+3. If one AI model is busy, the app tries the next one.
+4. The answer appears in simple Somali.
+
+## Project files
+| File | Job |
+|---|---|
+| `app.py` | Main page. Run this file. |
+| `config.py` | Settings and AI instructions |
+| `crops.py` | Somali crop names |
+| `api_key.py` | Finds the secret API key safely |
+| `gemini_client.py` | Talks to Gemini AI |
+| `ui.py` | Everything the farmer sees |
+
+## How to run
+1. Put your Gemini API key in a file called `key.txt` (only the key, nothing else).
+2. Install: `python -m pip install -r requirements.txt`
+3. Run: `python -m streamlit run app.py`
+
+Online (Streamlit Cloud): add `GEMINI_API_KEY = "your-key"` in Settings, then Secrets.
+
+## Limits (first version)
+1. AI can make mistakes. Answers must be checked by agriculture experts.
+2. It needs internet.
+3. Photos are not stored. They stay only in the session.
+
+## Next steps
+1. Test with real farmers and agriculture experts
+2. Add more Somali crops and local disease knowledge
+3. Voice answers, and WhatsApp or SMS access
+4. Offline use
+
+## Author
+Farah Hassan Elmi, Somali National University
